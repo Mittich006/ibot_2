@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+uvicorn             = "*"
+fastapi             = "*"
+aiogram             = "*"
+sqlalchemy          = "*"
+asyncpg             = "*"
+pydantic-settings   = "*"
+structlog           = "*"
+rich                = "*"
+asgi-correlation-id = "*"
+
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
