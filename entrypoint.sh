@@ -8,4 +8,5 @@ fi
 
 until pg_isready -h ${POSTGRES_HOST} &>/dev/null; do sleep 1; done
 
+python3 init_db.py
 uvicorn src.main:app --host 0.0.0.0 --proxy-headers --reload

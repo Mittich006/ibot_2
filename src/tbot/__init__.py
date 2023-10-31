@@ -1,34 +1,31 @@
+import traceback
 import os
-import importlib.util
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 
 from src.config import settings
 
+
 bot = Bot(token=settings.TELEGRAM_BOT_API_KEY, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
 
-# Get the current package path
-package_path = os.path.dirname(__file__)
-
-# Dynamically import modules from subdirectories
-for foldername, _, filenames in os.walk(package_path):
+# Get the list of all Python files in the module directory
+file_list = []
+for foldername, subfolders, filenames in os.walk(os.path.dirname(__file__)):
     for filename in filenames:
-        if filename.endswith(".py") and not filename.startswith("__init__"):
-            # Construct the full module name
-            module_name = f"src.tbot.{os.path.relpath(os.path.join(foldername, filename), package_path)[:-3].replace(os.sep, '.')}"
-            try:
-                spec = importlib.util.spec_from_file_location(module_name, os.path.join(foldername, filename))
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                
-                # Add functions/classes from the module to the dp object
-                for name in dir(module):
-                    func = getattr(module, name)
-                    if callable(func):
-                        dp.register_message_handler(func)
+        if filename.endswith(".py"):
+            file_list.append(os.path.join(foldername, filename))
 
-            except Exception as e:
-                print(f"Error importing module '{module_name}': {e}")
+# Import each file as a module
+for file_path in file_list:
+    filename = os.path.basename(file_path)
+    if filename.startswith("__init__.py"):
+        continue
+    # Remove the ".py" extension
+    module_name = file_path.replace('/', '.')[5:-3]
+    try:
+        __import__(module_name, fromlist=["*"])
+    except Exception as e:
+        traceback.print_exc()
