@@ -10,13 +10,14 @@ from src.config import settings
 bot = Bot(token=settings.TELEGRAM_BOT_API_KEY, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
-
 # Get the list of all Python files in the module directory
 file_list = []
 for foldername, subfolders, filenames in os.walk(os.path.dirname(__file__)):
     for filename in filenames:
         if filename.endswith(".py"):
             file_list.append(os.path.join(foldername, filename))
+
+file_list.reverse()
 
 # Import each file as a module
 for file_path in file_list:

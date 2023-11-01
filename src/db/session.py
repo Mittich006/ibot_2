@@ -3,12 +3,6 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from sqlalchemy import (
-    select,
-    insert,
-    delete,
-    update
-)
 
 from src.config import settings
 
