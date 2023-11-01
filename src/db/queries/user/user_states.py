@@ -74,21 +74,6 @@ async def get_current_user_state(message: Message) -> str:
         return user_state.history[-1]
 
 
-async def clear_user_state_history(message: Message) -> None:
-    user = await get_user(message)
-
-    async with get_compyshopdb_session() as s:
-        async with s.begin():
-            update_query = sa.update(
-                UserStates
-            ).values(
-                history=[]
-            ).filter_by(
-                user_id=user.user_id
-            )
-            await s.execute(update_query)
-
-
 async def update_current_product_id(message: Message, product_id: int) -> int:
     user = await get_user(message)
 

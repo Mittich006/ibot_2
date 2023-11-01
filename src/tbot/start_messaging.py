@@ -8,9 +8,7 @@ from src.tbot.utils import construct_commands
 from src.db.queries.user.manage_user import (
     get_or_create_user, update_user
 )
-from src.db.queries.user.user_states import (
-    update_user_state_history, clear_user_state_history
-)
+from src.db.queries.user.user_states import update_user_state_history
 
 
 @dp.message(CommandStart())
@@ -20,10 +18,9 @@ async def start_messaging(message: Message) -> None:
     """
 
     user = await get_or_create_user(message)
-    await update_user_state_history(message, 'start_messaging')
+    await update_user_state_history(message, 'start_messaging', clear=True)
 
     if user.registered:
-        await clear_user_state_history(message)
         await register_user_and_construct_menu(message)
         return
 

@@ -8,15 +8,14 @@ from src.db.queries.user.manage_favorites import (
 )
 from src.db.queries.user.manage_user import get_user
 from src.db.queries.user.user_states import (
-    update_user_state_history, get_current_product_id, clear_user_state_history
+    update_user_state_history, get_current_product_id
 )
 from src.tbot.user.cards import show_card_first_time
 
 
 @dp.message(Command('favorites'))
 async def show_favorites_list(message: Message):
-    await clear_user_state_history(message)
-    await update_user_state_history(message, 'start_messaging')
+    await update_user_state_history(message, 'start_messaging', clear=True)
     await update_user_state_history(message, 'show_favorites_list')
 
     await show_card_first_time(message, favorite=True)
