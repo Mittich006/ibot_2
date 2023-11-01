@@ -13,7 +13,7 @@ pydantic-settings   = "*"
 structlog           = "*"
 rich                = "*"
 asgi-correlation-id = "*"
-
+faker = "*"
 
 [dev-packages]
 

@@ -1,6 +1,3 @@
-import traceback
-
-from aiogram import F
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters import Command
@@ -8,14 +5,15 @@ from aiogram.filters import Command
 from src.tbot import dp
 from src.db.queries.user.user_states import (
     update_user_state_history, update_current_catalog_id,
-    update_current_product_id, get_current_product_id,
-    get_current_catalog_id
+    get_current_product_id, get_current_catalog_id
 )
 from src.db.queries.user.manage_products import (
-    get_all_catalogs, get_catalog_id_by_title, get_all_products_by_catalog,
-    get_product_by_id
+    get_all_catalogs, get_catalog_id_by_title, get_catalog_title_by_id
 )
-from src.tbot.utils import construct_product_card_keyboard
+from src.tbot.utils import (
+    construct_catalog_list_keyboard, process_callback_query
+)
+from src.tbot.user.cards import show_card_first_time
 
 
 @dp.message(Command('products'))
@@ -26,17 +24,24 @@ async def show_catalog_list(message: Message) -> None:
     await update_user_state_history(message, 'show_catalog_list')
 
     catalogs = await get_all_catalogs()
+    if len(catalogs) == 0:
+        keyboard = InlineKeyboardBuilder()
 
-    keyboard_btns = []
-    for catalog in catalogs:
-        keyboard_btns.append([
+        keyboard.row(
             InlineKeyboardButton(
-                text=catalog.title,
-                callback_data=catalog.title
+                text="Назад",
+                callback_data="back_btn"
             )
-        ])
+        )
 
-    keyboard = InlineKeyboardBuilder(keyboard_btns)
+        await message.answer(
+            text="На даний момент каталоги відсутні.",
+            reply_markup=keyboard.as_markup()
+        )
+        return
+
+    keyboard_btns = {catalog.title: catalog.title for catalog in catalogs}
+    keyboard = await construct_catalog_list_keyboard(keyboard_btns)
 
     await message.answer(
         text="Оберіть каталог:",
@@ -49,129 +54,90 @@ async def show_catalog_products(callback_query: CallbackQuery) -> None:
     This handler receives callback queries from inline keyboards.
     """
 
-    await update_user_state_history(callback_query.message, 'show_catalog_products')
+    if isinstance(callback_query, Message):
+        message = callback_query
+        catalog_id = await get_current_catalog_id(message)
+        catalog_title = await get_catalog_title_by_id(catalog_id)
+    elif isinstance(callback_query, CallbackQuery):
+        message = callback_query.message
+        catalog_title = callback_query.data
+        catalog_id = await get_catalog_id_by_title(catalog_title)
 
-    catalog_title = callback_query.data
-    catalog_id = await get_catalog_id_by_title(catalog_title)
+    await update_user_state_history(message, 'show_catalog_products')
 
-    await update_current_catalog_id(callback_query.message, catalog_id)
+    await update_current_catalog_id(message, catalog_id)
 
-    await callback_query.message.answer(
-        text=f"Ви обрали каталог: {catalog_title}"
-    )
+    await show_card_first_time(message)
 
-    await callback_query.answer()
-
-    await show_product_card_first_time(callback_query)
+    if isinstance(callback_query, CallbackQuery):
+        await callback_query.answer()
 
 
-async def show_product_card_first_time(callback_query: CallbackQuery) -> None:
-    await update_user_state_history(callback_query.message, 'viewing_product_card')
+@process_callback_query()
+async def buy_product(callback_query: CallbackQuery):
+    await update_user_state_history(callback_query, 'buy_product')
 
-    catalog_id = await get_current_catalog_id(callback_query.message)
-    products = await get_all_products_by_catalog(catalog_id)
-    await update_current_product_id(callback_query.message, products[0].product_id)
+    current_product_id = await get_current_product_id(callback_query)
 
-    keyboard = await construct_product_card_keyboard()
+    keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(
-        InlineKeyboardButton(
-            text="-->",
-            callback_data="next_product"
+    btn_texts = ["1", "2", "3", "5", "10", "20"]
+
+    for text in btn_texts:
+        keyboard.add(
+            InlineKeyboardButton(
+                text=text,
+                callback_data=f"buy_{text}_{current_product_id}"
+            )
         )
-    )
 
-    text = f'Назва: {products[0].title}\n' \
-              f'Ціна: {products[0].price}\n' \
-              f'Опис: {products[0].description}\n'
+    keyboard.adjust(3)
 
-    await callback_query.message.answer(
-        text=text,
+    await callback_query.edit_text(
+        text="Оберіть кількість товару:",
         reply_markup=keyboard.as_markup()
     )
 
 
-async def next_product(callback_query: CallbackQuery):
-    current_product_id = await get_current_product_id(callback_query.message)
-    current_catalog_id = await get_current_catalog_id(callback_query.message)
+async def try_to_confirm_buying_product(callback_query: CallbackQuery):
+    if isinstance(callback_query, Message):
+        message = callback_query
+    elif isinstance(callback_query, CallbackQuery):
+        message = callback_query.message
 
-    products = await get_all_products_by_catalog(current_catalog_id)
-    keyboard = await construct_product_card_keyboard()
+    current_product_id = await get_current_product_id(message)
 
-    for i, product in enumerate(products):
-        if product.product_id == current_product_id:
-            if i == len(products) - 2:
-                keyboard.row(
-                    InlineKeyboardButton(
-                        text="<--",
-                        callback_data="prev_product"
-                    )
-                )
-            else:
-                keyboard.row(*[
-                    InlineKeyboardButton(
-                        text="<--",
-                        callback_data="prev_product"
-                    ),
-                    InlineKeyboardButton(
-                        text="-->",
-                        callback_data="next_product"
-                    )
-                ])
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(
+            text="Підтвердити",
+            callback_data=f"confirm_buy_{current_product_id}"
+        ),
+        InlineKeyboardButton(
+            text="Скасувати",
+            callback_data=f"cancel_buy_{current_product_id}"
+        )
+    )
+
+    quantity = callback_query.data.split("_")[1]
+
+    await message.edit_text(
+        text=f"Ви впевнені, що хочете придбати даний "
+             f"товар в кількості {quantity}?",
+        reply_markup=keyboard.as_markup()
+    )
 
 
-            await update_current_product_id(callback_query.message, products[i + 1].product_id)
+async def confirm_buying_product(callback_query: CallbackQuery):
+    await callback_query.answer(
+        text="Ви успішно придбали товар!",
+        show_alert=True
+    )
 
-            text = f'Назва: {products[i + 1].title}\n' \
-                   f'Ціна: {products[i + 1].price}\n' \
-                   f'Опис: {products[i + 1].description}\n'
 
-            await callback_query.message.edit_text(
-                text=text,
-                reply_markup=keyboard.as_markup()
-            )
-
-            await callback_query.answer()
-            return
-
-async def prev_product(callback_query: CallbackQuery):
-    current_product_id = await get_current_product_id(callback_query.message)
-    current_catalog_id = await get_current_catalog_id(callback_query.message)
-
-    products = await get_all_products_by_catalog(current_catalog_id)
-    keyboard = await construct_product_card_keyboard()
-
-    for i, product in enumerate(products):
-        if product.product_id == current_product_id:
-            if i == 1:
-                keyboard.row(
-                    InlineKeyboardButton(
-                        text="-->",
-                        callback_data="next_product"
-                    )
-                )
-            else:
-                keyboard.row(*[
-                    InlineKeyboardButton(
-                        text="<--",
-                        callback_data="prev_product"
-                    ),
-                    InlineKeyboardButton(
-                        text="-->",
-                        callback_data="next_product"
-                    )
-                ])
-
-            await update_current_product_id(callback_query.message, products[i - 1].product_id)
-
-            text = f'Назва: {products[i - 1].title}\n' \
-                   f'Ціна: {products[i - 1].price}\n' \
-                   f'Опис: {products[i - 1].description}\n'
-
-            await callback_query.message.edit_text(
-                text=text,
-                reply_markup=keyboard.as_markup()
-            )
-
-            await callback_query.answer()
-            return
+async def cancel_buying_product(callback_query: CallbackQuery):
+    await callback_query.answer(
+        text="Ви скасували покупку товару!",
+        show_alert=True
+    )

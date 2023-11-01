@@ -53,6 +53,7 @@ async def get_or_create_user(message: Message) -> Users:
             select_res = await s.execute(select_query)
             return select_res.scalar_one_or_none()
 
+
 async def get_user(message: Message) -> Users:
     '''
     Get user from database by `aiogram.types.Message`.
@@ -79,6 +80,7 @@ async def get_user(message: Message) -> Users:
             )
             select_res = await s.execute(select_query)
             return select_res.scalar_one_or_none()
+
 
 async def update_user(message: Message, values: dict) -> Users:
     '''

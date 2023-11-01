@@ -1,5 +1,4 @@
 import sqlalchemy as sa
-from aiogram.types import Message
 
 from src.db.session import get_compyshopdb_session
 from src.db.models import Catalogs, Products
@@ -27,6 +26,18 @@ async def get_catalog_id_by_title(catalog_title: str) -> int:
             return select_res.scalar_one_or_none()
 
 
+async def get_catalog_title_by_id(catalog_id: int) -> str:
+    async with get_compyshopdb_session() as s:
+        async with s.begin():
+            query = sa.select(
+                Catalogs.title
+            ).where(
+                Catalogs.catalog_id == catalog_id
+            )
+            select_res = await s.execute(query)
+            return select_res.scalar_one_or_none()
+
+
 async def get_all_products_by_catalog(catalog_id: int) -> tuple[Products]:
     async with get_compyshopdb_session() as s:
         async with s.begin():
@@ -49,3 +60,15 @@ async def get_product_by_id(product_id: int) -> Products:
             )
             select_res = await s.execute(query)
             return select_res.scalar_one_or_none()
+
+
+async def get_all_products_by_ids(product_ids: list[int]) -> tuple[Products]:
+    async with get_compyshopdb_session() as s:
+        async with s.begin():
+            query = sa.select(
+                Products
+            ).where(
+                Products.product_id.in_(product_ids)
+            )
+            select_res = await s.execute(query)
+            return select_res.scalars().all()
