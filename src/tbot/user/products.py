@@ -1,76 +1,12 @@
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters import Command
 
 from src.tbot import dp
 from src.db.queries.user.user_states import (
-    update_user_state_history, update_current_catalog_id,
-    get_current_product_id, get_current_catalog_id
+    update_user_state_history, get_current_product_id
 )
-from src.db.queries.user.manage_products import (
-    get_all_catalogs, get_catalog_id_by_title, get_catalog_title_by_id
-)
-from src.tbot.utils import (
-    construct_catalog_list_keyboard, process_callback_query
-)
-from src.tbot.user.cards import show_card_first_time
+from src.tbot.utils import process_callback_query
 
-
-@dp.message(Command('products'))
-async def show_catalog_list(message: Message) -> None:
-    """
-    This handler receives messages with `/catalog` command.
-    """
-    await update_user_state_history(message, 'show_catalog_list')
-
-    catalogs = await get_all_catalogs()
-    if len(catalogs) == 0:
-        keyboard = InlineKeyboardBuilder()
-
-        keyboard.row(
-            InlineKeyboardButton(
-                text="Назад",
-                callback_data="back_btn"
-            )
-        )
-
-        await message.answer(
-            text="На даний момент каталоги відсутні.",
-            reply_markup=keyboard.as_markup()
-        )
-        return
-
-    keyboard_btns = {catalog.title: catalog.title for catalog in catalogs}
-    keyboard = await construct_catalog_list_keyboard(keyboard_btns)
-
-    await message.answer(
-        text="Оберіть каталог:",
-        reply_markup=keyboard.as_markup()
-    )
-
-
-async def show_catalog_products(callback_query: CallbackQuery) -> None:
-    """
-    This handler receives callback queries from inline keyboards.
-    """
-
-    if isinstance(callback_query, Message):
-        message = callback_query
-        catalog_id = await get_current_catalog_id(message)
-        catalog_title = await get_catalog_title_by_id(catalog_id)
-    elif isinstance(callback_query, CallbackQuery):
-        message = callback_query.message
-        catalog_title = callback_query.data
-        catalog_id = await get_catalog_id_by_title(catalog_title)
-
-    await update_user_state_history(message, 'show_catalog_products')
-
-    await update_current_catalog_id(message, catalog_id)
-
-    await show_card_first_time(message)
-
-    if isinstance(callback_query, CallbackQuery):
-        await callback_query.answer()
 
 
 @process_callback_query()

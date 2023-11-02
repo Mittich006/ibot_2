@@ -1,31 +1,15 @@
 from typing import Union
 from functools import wraps
 
-from aiogram.types import (
-    Message, BotCommand, InlineKeyboardButton, CallbackQuery
-)
+from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.utils.markdown import hbold
 
-from src.db.queries.user.user_states import update_user_state_history
 from src.db.models import Products
 
 
-async def construct_commands(message: Message):
-    commands = [
-        BotCommand(
-            command='/products',
-            description='Каталог товарів.'
-        ),
-        BotCommand(
-            command='/favorites',
-            description='Обране.'
-        )
-    ]
-    await message.bot.set_my_commands(commands)
-
-
-async def construct_catalog_list_keyboard(btns: dict) -> InlineKeyboardBuilder:
+async def construct_catalog_list_keyboard(btns: dict, admin: bool = False) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     for btn_text, btn_data in btns.items():
@@ -38,6 +22,14 @@ async def construct_catalog_list_keyboard(btns: dict) -> InlineKeyboardBuilder:
 
     keyboard.adjust(int(len(btns)/2))
 
+    if admin:
+        keyboard.row(
+            InlineKeyboardButton(
+                text="Додати каталог",
+                callback_data="admin_add_catalog"
+            )
+        )
+
     keyboard.row(
         InlineKeyboardButton(
             text="Назад",
@@ -49,11 +41,31 @@ async def construct_catalog_list_keyboard(btns: dict) -> InlineKeyboardBuilder:
 
 
 async def construct_product_card_keyboard(
-    favorite: bool = None
+    favorite: bool = None,
+    admin: bool = False
 ) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
-    if favorite:
+    if admin:
+        keyboard.row(
+            InlineKeyboardButton(
+                text="Додати товар до каталогу",
+                callback_data="admin_add_product"
+            )
+        )
+
+        buy_and_fav_elements = [
+            InlineKeyboardButton(
+                text="Видалити каталог",
+                callback_data="admin_delete_catalog"
+            ),
+            InlineKeyboardButton(
+                text="Видалити товар",
+                callback_data="admin_delete_product"
+            )
+        ]
+
+    elif favorite:
         buy_and_fav_elements = [
             InlineKeyboardButton(
                 text="Видалити з обраного",
@@ -64,6 +76,7 @@ async def construct_product_card_keyboard(
                 callback_data="buy_product"
             )
         ]
+
     else:
         buy_and_fav_elements = [
             InlineKeyboardButton(
@@ -115,9 +128,10 @@ async def construct_and_send_product_card(
     product: Products,
     keyboard: InlineKeyboardBuilder
 ) -> None:
-    text = f'Назва: {product.title}\n' \
-              f'Ціна: {product.price}\n\n' \
-              f'Опис: {product.description}\n'
+    description = product.description or 'Опис відсутній.'
+    text = f'{hbold("Назва")}: {product.title}\n' \
+              f'{hbold("Ціна")}: {product.price} грн.\n\n' \
+              f'{hbold("Опис")}: {description}\n'
 
     if isinstance(callback_or_message, CallbackQuery):
         message = callback_or_message.message

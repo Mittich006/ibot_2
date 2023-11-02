@@ -10,7 +10,7 @@ from src.db.queries.user.manage_user import get_user
 from src.db.queries.user.user_states import (
     update_user_state_history, get_current_product_id
 )
-from src.tbot.user.cards import show_card_first_time
+from src.tbot.cards import show_card_first_time
 
 
 @dp.message(Command('favorites'))
