@@ -131,6 +131,10 @@ async def global_callback_handler(callback_query: CallbackQuery) -> None:
             callback_query.data == 'admin_manage_products':
             await show_catalog_list(callback_query, admin=True)
 
+        elif current_state == 'start_admin_messaging' and\
+            callback_query.data == 'admin_get_statistics':
+            await get_admin_statistics(callback_query)
+
         elif current_state == 'show_catalog_list' and\
             callback_query.data == 'admin_add_catalog':
             await add_catalog_title(callback_query)

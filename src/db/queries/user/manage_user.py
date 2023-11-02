@@ -6,17 +6,15 @@ from src.db.models import Users
 
 
 async def get_or_create_user(message: Message) -> Users:
-    '''
-    Get user from database by `aiogram.types.Message`.
-    If user not found, create new user.
-
+    """
+    Get or create user in database by `aiogram.types.Message`.
 
     Args:
         message (`aiogram.types.Message`): Telegram message from user.
 
     Returns:
         models.Users: User from database.
-    '''
+    """
     async with get_compyshopdb_session() as s:
         async with s.begin():
 
@@ -55,17 +53,15 @@ async def get_or_create_user(message: Message) -> Users:
 
 
 async def get_user(message: Message) -> Users:
-    '''
-    Get user from database by `aiogram.types.Message`.
-    If user not found, return None.
-
+    """
+    Get user in database by `aiogram.types.Message`.
 
     Args:
         message (`aiogram.types.Message`): Telegram message from user.
 
     Returns:
         models.Users: User from database.
-    '''
+    """
     async with get_compyshopdb_session() as s:
         async with s.begin():
             if message.from_user.is_bot:
@@ -85,7 +81,6 @@ async def get_user(message: Message) -> Users:
 async def update_user(message: Message, values: dict) -> Users:
     '''
     Update user in database by `aiogram.types.Message`.
-
 
     Args:
         message (`aiogram.types.Message`): Telegram message from user.

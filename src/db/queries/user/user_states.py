@@ -6,7 +6,20 @@ from src.db.session import get_compyshopdb_session
 from src.db.queries.user.manage_user import get_user
 
 
-async def update_user_state_history(message: Message, state: str, clear:bool=None) -> None:
+async def update_user_state_history(
+    message: Message,
+    state: str,
+    clear:bool=None
+) -> None:
+    """
+    Update user state history in database by `aiogram.types.Message`.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+        state (str): State to add to the user's state history.
+        clear (bool): Whether to clear the user's state history before adding
+            the new state.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
@@ -46,6 +59,15 @@ async def update_user_state_history(message: Message, state: str, clear:bool=Non
 
 
 async def update_and_get_previous_user_state(message: Message) -> str:
+    """
+    Update user state history in database by `aiogram.types.Message`.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+
+    Returns:
+        str: The previous state of the user.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
@@ -63,6 +85,15 @@ async def update_and_get_previous_user_state(message: Message) -> str:
 
 
 async def get_current_user_state(message: Message) -> str:
+    """
+    Get the current state of the user.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+
+    Returns:
+        str: The current state of the user.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
@@ -75,6 +106,16 @@ async def get_current_user_state(message: Message) -> str:
 
 
 async def update_current_product_id(message: Message, product_id: int) -> int:
+    """
+    Update the current product ID of the user.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+        product_id (int): The ID of the product to set as the current product.
+
+    Returns:
+        int: The ID of the current product.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
@@ -98,6 +139,15 @@ async def update_current_product_id(message: Message, product_id: int) -> int:
 
 
 async def get_current_product_id(message: Message) -> int:
+    """
+    Get the current product ID of the user.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+
+    Returns:
+        int: The ID of the current product.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
@@ -110,6 +160,16 @@ async def get_current_product_id(message: Message) -> int:
 
 
 async def update_current_catalog_id(message: Message, catalog_id: int) -> int:
+    """
+    Update the current catalog ID of the user.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+        catalog_id (int): The ID of the catalog to set as the current catalog.
+
+    Returns:
+        int: The ID of the current catalog.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
@@ -133,6 +193,15 @@ async def update_current_catalog_id(message: Message, catalog_id: int) -> int:
 
 
 async def get_current_catalog_id(message: Message) -> int:
+    """
+    Get the current catalog ID of the user.
+
+    Args:
+        message (`aiogram.types.Message`): Telegram message from user.
+
+    Returns:
+        int: The ID of the current catalog.
+    """
     user = await get_user(message)
 
     async with get_compyshopdb_session() as s:
